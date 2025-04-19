@@ -13,16 +13,10 @@ def generate_matrix_file(filename: str, rows: int, cols: int):
             f.write(",".join(row) + "\n")
 
 if __name__ == "__main__":
-    # Создаем парсер
-    parser = argparse.ArgumentParser()
-
-    # Добавляем аргументы
-    parser.add_argument("size", type=int, help="Размер стороны квадратной матрицы", default=100)
-
-    # Парсим аргументы
-    args = parser.parse_args()
-
-    generate_matrix_file(f"matrix_{args.size}on{args.size}.txt", args.size, args.size)
+    for i in range(100, 2001, 100):
+        generate_matrix_file(f"matrix_{i}on{i}_first.txt", i, i)
+    for i in range(100, 2001, 100):
+        generate_matrix_file(f"matrix_{i}on{i}_second.txt", i, i)
     
 
 
