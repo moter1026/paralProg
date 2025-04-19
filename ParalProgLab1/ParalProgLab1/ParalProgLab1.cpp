@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <stdexcept>
+#include <chrono>
 
 void write_matrix(std::vector<std::vector<uint32_t>>& matrix, std::string nameFile) {
     std::ofstream file_res(nameFile);
@@ -57,14 +58,57 @@ public:
         }
         return matrix;
     }
+    std::vector<std::vector<uint32_t>> transpose() {
+        std::vector<std::vector<uint32_t>> matrix = readFile();
 
-    std::vector<std::vector<uint32_t>> mul(Matrix& matrix){
+        // Если матрица пустая, возвращаем пустую матрицу
+        if (matrix.empty() || matrix[0].empty()) {
+            return {};
+        }
+
+        // Создаем новую матрицу с перевернутыми размерами
+        std::vector<std::vector<uint32_t>> transposed(matrix[0].size(), std::vector<uint32_t>(matrix.size()));
+
+        // Заполняем транспонированную матрицу
+        for (size_t i = 0; i < matrix.size(); ++i) {
+            for (size_t j = 0; j < matrix[i].size(); ++j) {
+                transposed[j][i] = matrix[i][j];
+            }
+        }
+
+        return transposed;
+    }
+
+    std::vector<std::vector<uint32_t>> mul_transpose(Matrix& matrix){
         std::vector<std::vector<uint32_t>> matrix1 = this->readFile();
-        std::vector<std::vector<uint32_t>> matrix2 = matrix.readFile();
-        
+        std::vector<std::vector<uint32_t>> matrix2 = matrix.transpose();
+
+
         if (matrix1[0].size() != matrix2.size()) {
             throw std::runtime_error("Matrix dimensions are not compatible for multiplication");
         }
+
+
+        std::vector<std::vector<uint32_t>> res(matrix1.size(), std::vector<uint32_t>(matrix2[0].size(), 0));
+
+        for (size_t i = 0; i < matrix1.size(); i++) {
+            for (size_t j = 0; j < matrix2[0].size(); j++) {
+                for (size_t k = 0; k < matrix2.size(); k++) {
+                    res[i][j] += matrix1[i][k] * matrix2[j][k];
+                }
+            }
+        }
+        return res;
+    }
+    std::vector<std::vector<uint32_t>> mul(Matrix& matrix) {
+        std::vector<std::vector<uint32_t>> matrix1 = this->readFile();
+        std::vector<std::vector<uint32_t>> matrix2 = matrix.readFile();
+
+
+        if (matrix1[0].size() != matrix2.size()) {
+            throw std::runtime_error("Matrix dimensions are not compatible for multiplication");
+        }
+
 
         std::vector<std::vector<uint32_t>> res(matrix1.size(), std::vector<uint32_t>(matrix2[0].size(), 0));
 
@@ -81,12 +125,27 @@ public:
 
 int main() {
     try {
-        Matrix matrix1("../../matrix_1000on1000_first.txt");
-        Matrix matrix2("../../matrix_1000on1000_second.txt");
+        std::wofstream file_time("time_stats.txt", std::ios::ate);
+        for (size_t XY = 100; XY < 2001; XY+= 100)
+        {
+            Matrix matrix1("../../matrix_" + std::to_string(XY) + "on" + std::to_string(XY) + "_first.txt");
+            Matrix matrix2("../../matrix_" + std::to_string(XY) + "on" + std::to_string(XY) + "_second.txt");
 
-        auto data_res = matrix1.mul(matrix2);
 
-        write_matrix(data_res, "../../matrix_1000on1000_res.txt");
+            auto start = std::chrono::steady_clock::now();
+            auto data_res = matrix1.mul(matrix2);
+            auto end = std::chrono::steady_clock::now();
+
+            auto time_ms = int(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+            std::wstring str(std::to_wstring(XY) + L"on" + std::to_wstring(XY) + L"_time: " + std::to_wstring(time_ms));
+            file_time.write(str.c_str(), str.size());
+            file_time.write(L";\n", 3);
+            file_time.flush();
+            write_matrix(data_res, "../../matrix_" + std::to_string(XY) + "on" + std::to_string(XY) + "_res.txt");
+            std::wcout << std::to_wstring(XY) + L"on" + std::to_wstring(XY) + L": time = " << time_ms << std::endl;
+        }
+        file_time.close();
+
     }
     catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
